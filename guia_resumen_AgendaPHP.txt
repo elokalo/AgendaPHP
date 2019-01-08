@@ -1,0 +1,148 @@
+GUIA RESUMIDA DE PROYECTO "AGENDA DE CONTACTOS PHP"
+
+***PRIMEROS PASOS, CREACION DE LA ESTRUCTURA Y ESTILOS***
+
+-Creamos el 'index.html' y su estructura en HTML enfocandonos en el formulario
+-Comenzamos con el diseño de la barra superior y los estilos del formulario
+-Creamos el area de listado de contactos en la parte inferior y añadimos estilos con Flexbox
+-El diseño utilizara Flexbox para el 'contenedor' y CSS Grid para la barra superior
+-Creamos el 'editar.html' donde esta pagina se enfocara en editar los usuarios registrados
+-Comenzamos a separar los elementos dentro del servidor local en '.php'
+-Creamos los elementos 'header.php', 'footer.php' y 'formulario.php' en la carpeta 'includes/layouts'
+-Para hacer dinamica la pagina incluimos los layouts con PHP en 'index.php' y 'editar.php'
+
+***VALIDANDO FORMULARIO PARA PODER LLAMAR A AJAX***
+
+-Validamos el formulario utilizando el evento 'submit' y leyendo los datos del formulario
+-Existira un <input> tipo 'hidden' para corroborar el tipo de accion que se hara en el formulario
+-Para validar el formulario utilizamos la funcion 'FormData' donde leemos los datos de un formulario
+creando un arreglo y asi poder pasarlos por medio de AJAX
+-Si el formulario esta vacio con la funcion 'mostrarNotificacion' que aparecera en la parte superior de la pagina
+recibira dos argumentos, el mensaje y la clase que tendra, en este caso como esta vacio mandara un 'error'
+-Si el formulario contiene datos los añadimos al FormData, si la accion === 'crear' entonces insertaremos en la BD
+llamando la funcion 'insertarBD' y recibiendo como argumento los datos del arreglo 'FormData'.
+
+***CREACION DE BD E INSERTANDO REGISTROS EN BD***
+
+-Creamos la BD en phpMyAdmin llamada 'agendaphp' solo contendra una tabla 'contactos' con los campos
+id, nombre, empresa y telefono; donde id sera la llave primaria
+-Creamos la conexion a la BD con PHP en el archivo 'bd.php' ubicado en 'funciones'
+-Hacemos la peticion a AJAX creando el objeto para la consulta XMLHttpRequest, abrimos la conexion tipo POST
+el archivo de 'modelos/modelo-contacos.php', pasamos los datos con 'onload' y esperamos una respuesta
+-Para verificar la respuesta en 'modelo-contactos.php' verificamos que el arreglo tipo $_POST sea la
+accion === 'crear' y verificar si obtenemos el JSON correctamente en la peticion a AJAX desde JS
+-Si es correcto el JSON lo convertimos a objeto de JS y en 'modelo-contacos.php' creamos la conexion y la consulta
+a la BD mediante SQL
+-Validamos las entradas con filtros de sanitizacion de campos tipo String, para evitar que inyecten datos corruptos
+-Creamos la consulta con un try-catch, preparamos la consulta tipo statement a traves de la conexion en la cual
+sera de tipo INSERT y recibiremos tres parametros para los campos nombre, empresa y telefono
+-Con 'bind_param' vinculamos un parametro en este caso son puros string, (sss) al nombre de la variable especificada
+-Ejecutamos verificamos si son afectadas las filas, en caso de que el registro/fila se inserto correctamente
+a traves de un arreglo asociativo verificamos que los datos fueron insertados correctamente
+-Cerramos el statement y la conexion a la BD, utilizando el arreglo $respuesta lo codificamos en JSON y lo 
+recibimos mediante AJAX con el 'xhr.responseText' este JSON lo convertimos a objeto de JS
+
+***MOSTRAR NOTIFICACION DE NUEVOS REGISTROS Y AGREGANDOLOS AL HTML EN LISTA DE CONTACTOS***
+
+-Este objeto que recibimos de JS lo manipulamos para insertar un nuevo contacto <tr> en el listado de contactos
+-Es decir ademas de insertarlo en la BD lo insertamos con HTML al listado de contactos
+-Creamos el <tr> e insertamos los datos de respuesta de la BD, adicionalmente dentro tendremos un <td> que contendra el
+enlace para editar que nos redireccionara a 'editar.php?id=' y boton de borrar el registro ambos los creamos con un <i> 
+-Agregamos al <tr> de nuevo contacto todos los <td>, nombre, empresa, telefono, enlace editar, boton borrar y los
+insertamos en el <tbody> de la tabla de listado de contactos y llamamos 'mostrarNotifacion' para validar que el
+contacto se creo correctamente
+
+***MOSTRAR TODOS LOS REGISTROS EN LISTA DE CONTACTOS DE INDEX.PHP***
+
+-Para mostrar todos los registro de la BD al recargar la pagina en la lista de contactos creamos el archivo 
+'funciones.php' en 'funciones'
+-Dentro creamos una funcion con PHP 'obtenerContactos' donde a traves a la conexion de la BD haremos una consulta
+tipo SELECT obteniendo todos los registros de 'contacos' de la BD 'agendaPHP'
+-Hacemos el llamado de esa funcion 'obtenerContactos' en el 'index.php' si existen registros de manera dinamica
+con un 'foreach' agregamos los <tr> y dentro sus <td> y en el caso del enlace de editar y el boton de borrar asociamos
+el 'id_contacto' para posteriormente saber que contacto editar segun su URL o eliminar segun su 'data-id'
+
+***ELIMINANDO REGISTRO DE LA BD Y DEL HTML/DOM***
+
+-Creamos un evento que cuando demos 'click' en toda la tabla de listado de contactos este llame la funcion 
+'eliminarContacto', dentro de esta funcion utilizaremos el Delegation en JS
+-La delegacion se hace mediante la funcion 'target' es decir cuando demos click en cierto elemento de la tabla
+de listado de contactos este nos dara informacion de la etiqueta del DOM, en este caso queremos obtener
+la etiqueta de la <i> del bote de basura, y acceder a su elemento padre que es el <button>
+-Dentro del <button> verificamos que contenga la clase de 'btn-borrar' y tomamos el 'id' que nosotros configuramos
+de manera dinamica con 'data-id', es decir cada registro, cada <tr> tendra un 'data-id' unico asociado al id_contacto
+de la BD
+-Le pedimos que si esta seguro de eliminar el registro, si esta seguro hacemos el Llamado a AJAX, si no esta seguro
+simplemente no se hace nada
+-Nuevamente hacemos un llamado a AJAX, creamos el objeto y abrimos la conexion en este caso sera con un GET, 
+y atraves de la URL utilizando el mismo archivo de 'modelo-contacos.php?id=${id}&accion=borrar' es decir
+atraves de la URL obtendremos el ID que sera borrado y la accion de 'borrar'
+-La diferencia principal entre POST y GET, es que con GET no creamos el FormData, es decir no enviamos los datos
+mediante un arreglo, si no que obtenemos lo datos desde la URL, en este caso solo necesitamos dos cosas que es
+el id del registro a eliminar y la accion que es 'borrar'
+-Dentro de 'modelo-contactos.php' una vez que verifiquemos la conexion entre JS y PHP mediante un JSON de prueba
+creamos la conexion con la BD y sanitizamos el valor de 'id' -
+-Preparamos la consulta en este caso sera un DELETE, donde el WHERE aqui es muyimportante ya que especificaremos 
+cual 'id' queremos borrar y con bind_param especificamos que es de tipo entero el 'id' que recibimos mediante AJAX
+-Ejecutamos la consulta y si fila/registro fue insertada entnces recibiremos la respuesta 'correcto', en este punto
+el registro ya fue eliminado de la tabla 'contactos'
+-Del lado de JS convertimos esa respuesta que viene en JSON a un objeto de JS, y si la respuesta fue correcta
+entonces eliminamos el <tr> mediante el 'target' en este caso accediendo al padre de <button> que es <td> y luego
+al padre del <td> que es el <tr> completo y lo removemos del DOM
+-Mostramos la notifcacion de que el contacto fue eliminado utilizando la funcion "mostrarNotificacion"
+
+***FORMULARIO DINAMICO Y REUTILIZABLE***
+-Antes de pasar a la parte de edicion.php necesitamos modificar el formulario.php para hacerlo mas dinamico y no
+crear dos formularios, uno para crear y eliminar en 'index.php' y otro para editar en 'editar.php'
+-Para eso utilizando la misma funcion de 'obtenerContactos' de PHP en cada <input> en la parte de value utilizaremos
+la funcion ternaria (if) es decir si en 'nombre', 'empresa' y 'telefono' tiene un valor este formulario lo usaremos 
+para 'editar.php' todo esto asociado a su 'id_contacto' para eso era la URL y asi alteramos el boton de 'submit=Guardar'
+y al mismo tiempo la accion cambiara tambien a 'editar'
+-En el caso de que los 3 campos esten vacios '' deja el boton de 'submit=Añadir', dado que quiere decir que se añadira
+un nuevo registro y por ende la accion sera 'crear'
+
+***ACTUALIZAR REGISTROS EN 'EDITAR.PHP' Y TERMINACION DEL CRUD***
+-Una vez hecho el formulario mas dinamico debemos crear una funcion en 'funciones.php' llamada 'obtenerContacto' que lo que
+hara sera una consulta SELECT donde utilizaremos el WHERE  en 'id', es decir esta funcion recibira el 'id' que deseamos
+editar
+-La mandamos llamar en 'editar.php' y obtenemos el 'id' a partir de la URL ya que para eso utilizamos el metodo GET, si el
+'id' es valido entonces utilizando 'fetch_assoc' traemos el resultado de la BD y lo almacenamos en '$contacto' para poder
+utilizar en los 'values' de cada <input> y ademas asi cambiar el boton de 'submit' a 'Guardar' y la accion a 'editar'
+-Como es un formulario dinamico y reutilizable en JS utilizamos la misma funcion de 'leerForm' para crear el mismo FormData
+como en un if condicionamos que la accion era 'crear' con el 'else' indicamos que si accion no vale eso, es decir si vale
+'editar' o lo que sea añadimos al mismo FormData el id_contacto y mandamos llamar la funcion de 'actualizarRegistro' como
+argumento el FormData
+-Creamos nuevamente un llamado a AJAX, creando el objeto XML, abriendo la conexion en este caso sera POST nuevamente en el mismo
+archivo de 'modelos-contactos.php' y leemos la respuesta con 'onload' enviando la peticion
+-Del lado del servidor PHP 'modelo-contactos.php' creamos una conexion a la BD 'agendaphp' y filtramos las entradas sanitizando
+los string, preparamos la consulta en este caso sera un UPDATE de actualizar los datos utilizando WHERE indicamos que 'id_contacto'
+sera editado/actualizado
+-Con bind_param indicamos que seran 3 string y un entero (sssi) siendo el entero el 'id' a actualizar, ejecutamos la consulta y 
+verificamos la respuesta, es decir y algun registro fue afectado y enviamos la respuesta al cliente con 'correcto'
+-Cerramos la consulta tipo statement y la conexion a la BD, en este punto el registro ya se actualizo y enviamos el arreglo de 
+respuesta en codigo de JSON
+-Del lado de JS simplemente convertimos el JSON a objeto de JS y verificamos si la respuesta fue 'correcto', en caso de serlo asi
+mandamos llamar 'mostrarNotificacion' de que el contacto fue editado/actualizado correctamente
+-Despues de haber editado un registro utilizando 'setTimeOut' despues de 4 segundos de presionar el boton 'submit' retornamos
+la ventana al 'index.php'
+
+***AGREGAR UN BUSCADOR DE REGISTROS EN 'INDEX.PHP'***
+-Una vez terminado todo el CRUD de la aplicacion de forma adicional añadiremos un buscador de contactos, este buscador solo utilizara
+JS, con un evento en el <input> del buscador de tipo 'input' como tal
+-Una vez que hagamos un 'input' con el teclado llamamos la funcion 'buscarContactos' donde creamos un objeto de tipo 'RegExp', es decir
+que recibiremos cadenas de texto a partir de donde demos el 'input' con el 'target' y un argumento adicional que es "i" que estamos 
+especificando que las expresiones/cadenas ya no seran 'case sensitive' es decir podemos colocarlas en mayusculas o minusculas
+-Utilizando un 'foreach' en la tabla de lista de contactos, buscaremos en cada <tr> si el primer nodo hijo que en este caso es el <input>
+del 'Nombre Contacto' contiene texto sin espacios (utilizando replace) buscaremos la expresion y si es diferente a '-1' (es decir existe)
+entonces la mostraremos en la tabla de listado contactos
+-En caso de que la expresion sea igual a '-1' (es decir que no existe) hacer un display='none' de la tabla completa
+
+***MOSTRANDO EL TOTAL DE CONTACTOS DE MANERA DINAMICA***
+-Otro elemento adicional a esta aplicacion es mostrar el numero de contactos actuales existentes en la BD y en la tabla listado de contactos
+-Para hacer esto creamos una funcion en JS llamada 'numeroContactos' y lo que haremos es sin consultar a la BD, verificaremos si exista un
+<tr> en la tabla de listado contactos
+-Utilizando un 'foreach' verificamos que si existe un elemento <tr> si esta mostrado 'display' entonces aumentaremos nuestro contador, asi
+hasta que termine de contar todos los <tr> de la tabla, una vez hecho eso mostramos el numero total de contactos existentes, en caso de no contar nada
+el total sera igual a 0
+-Esta funcion la debemos llamar cada que creemos un contacto en la funcion 'insertarBD' y cada que eliminemos un contacto en 'eliminarContacto', esto
+para que se actualice de mandera dinamica.
